@@ -1,380 +1,368 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 
-import { useEffect, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-type Cliente = {
-  id: string;
-  nome: string;
-  email: string;
-  telefone: string;
+import styles from "./page.module.css";
+
+import { Sidebar } from "../components/Sidebar";
+import { API_URL } from "../services/api";
+
+type DashboardData = {
+  totalAtendimentos: number;
+  confirmados: number;
+  pendentes: number;
+  realizados: number;
+  cancelados: number;
+  clientes: number;
+  profissionaisAtivos: number;
+  procedimentosAtivos: number;
+  faturamentoPrevisto: number;
+  faturamentoRealizado: number;
 };
 
-type Servico = {
-  id: string;
-  nome: string;
-  preco: number;
-  duracao: number;
-};
-
-type Agendamento = {
+type Atendimento = {
   id: string;
   data: string;
   status: string;
-  cliente: Cliente;
-  servicos: {
-    servico: Servico;
-  }[];
+  valorTotal: number;
+
+  cliente: {
+    nome: string;
+  };
+
+  profissional: {
+    nome: string;
+  };
 };
 
-const API_URL = "http://127.0.0.1:3333";
-
 export default function Home() {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [servicos, setServicos] = useState<Servico[]>([]);
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
 
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
+  async function carregarDashboard() {
+    try {
+      const [dashboardRes, atendimentosRes] = await Promise.all([
+        fetch(`${API_URL}/dashboard`),
+        fetch(`${API_URL}/atendimentos`),
+      ]);
 
-  const [clienteId, setClienteId] = useState("");
-  const [servicoId, setServicoId] = useState("");
-  const [data, setData] = useState("");
+      const dashboardData = await dashboardRes.json();
+      const atendimentosData = await atendimentosRes.json();
 
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
+      setDashboard(dashboardData);
+      setAtendimentos(atendimentosData);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
-  const [dashboard, setDashboard] = useState<any>(null);
+  const statusData = useMemo(() => {
+    return [
+      {
+        name: "Pendentes",
+        value: dashboard?.pendentes ?? 0,
+        color: "#f59e0b",
+      },
+      {
+        name: "Confirmados",
+        value: dashboard?.confirmados ?? 0,
+        color: "#22c55e",
+      },
+      {
+        name: "Realizados",
+        value: dashboard?.realizados ?? 0,
+        color: "#d6a354",
+      },
+      {
+        name: "Cancelados",
+        value: dashboard?.cancelados ?? 0,
+        color: "#ef4444",
+      },
+    ];
+  }, [dashboard]);
 
-  async function carregarDados() {
-  const [clientesRes, servicosRes, agendamentosRes, dashboardRes] = await Promise.all([
-    fetch(`${API_URL}/clientes`),
-    fetch(`${API_URL}/servicos`),
-    fetch(`${API_URL}/agendamentos`),
-    fetch(`${API_URL}/dashboard`),
-  ]);
+  const faturamentoPorBarbeiro = useMemo(() => {
+    const mapa = new Map<string, number>();
 
-  setClientes(await clientesRes.json());
-  setServicos(await servicosRes.json());
-  setAgendamentos(await agendamentosRes.json());
-  setDashboard(await dashboardRes.json());
-}
+    atendimentos.forEach((atendimento) => {
+      const barbeiro = atendimento.profissional.nome;
+      const valorAtual = mapa.get(barbeiro) ?? 0;
 
-  async function criarCliente(e: React.FormEvent) {
-    e.preventDefault();
-
-    await fetch(`${API_URL}/clientes`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, email, telefone }),
+      mapa.set(barbeiro, valorAtual + atendimento.valorTotal);
     });
 
-    setNome("");
-    setEmail("");
-    setTelefone("");
-    carregarDados();
-  }
-
-  async function criarAgendamento(e: React.FormEvent) {
-  e.preventDefault();
-
-  const resposta = await fetch(`${API_URL}/agendamentos`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      clienteId,
-      servicoIds: [servicoId],
-      data: new Date(data).toISOString(),
-    }),
-  });
-
-  const resultado = await resposta.json();
-
-  if (!resposta.ok) {
-    alert(resultado.message || "Não foi possível criar o agendamento");
-    return;
-  }
-
-  if (resultado.sugestao) {
-    alert(
-      `${resultado.sugestao.message}\nData sugerida: ${new Date(
-        resultado.sugestao.dataSugerida
-      ).toLocaleString("pt-BR")}`
-    );
-  } else {
-    alert("Agendamento criado com sucesso");
-  }
-
-  setClienteId("");
-  setServicoId("");
-  setData("");
-  carregarDados();
-}
-  async function cancelarAgendamento(id: string) {
-    const resposta = await fetch(`${API_URL}/agendamentos/${id}/cancelar`, {
-      method: "PATCH",
-    });
-
-    const resultado = await resposta.json();
-
-    if (!resposta.ok) {
-      alert(resultado.message || "Não foi possível cancelar o agendamento");
-      return;
-    }
-
-    alert("Agendamento cancelado com sucesso");
-    carregarDados();
-  }
-
-  async function filtrarAgendamentos() {
-    if (!dataInicio || !dataFim) {
-      alert("Informe a data inicial e a data final");
-      return;
-    }
-
-    const resposta = await fetch(
-      `${API_URL}/agendamentos/filtro?dataInicio=${dataInicio}&dataFim=${dataFim}`
-    );
-
-    const resultado = await resposta.json();
-    setAgendamentos(resultado);
-  }
-
- async function confirmarAgendamento(id: string) {
-  console.log("ID enviado:", id);
-
-  const resposta = await fetch(`${API_URL}/agendamentos/${id}/confirmar`, {
-    method: "PATCH",
-  });
-
-  console.log("Status:", resposta.status);
-
-  const resultado = await resposta.json();
-  console.log("Resposta:", resultado);
-
-  if (!resposta.ok) {
-    alert(resultado.message || "Erro");
-    return;
-  }
-
-  carregarDados();
-}
+    return Array.from(mapa.entries()).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  }, [atendimentos]);
 
   useEffect(() => {
-    carregarDados();
+    carregarDashboard();
   }, []);
 
   return (
-    <main className="page">
-<header className="hero">
-  <div>
-    <span className="tag">Sistema de agendamentos</span>
-    <h1>Leila Salão de Beleza</h1>
-    <p>
-      Controle de clientes, serviços e agendamentos com regras de alteração,
-      cancelamento e histórico por período.
-    </p>
-  </div>
+    <div className={styles.container}>
+      <Sidebar />
 
-  {dashboard && (
-    <div className="dashboard">
-      <div>
-        <strong>{dashboard.total}</strong>
-        <span>Total</span>
-      </div>
+      <main className={styles.content}>
+        <section className={styles.hero}>
+          <div className={styles.heroOverlay} />
 
-      <div>
-        <strong>{dashboard.confirmados}</strong>
-        <span>Confirmados</span>
-      </div>
+          <div className={styles.heroContent}>
+            <div>
+              <span className={styles.badge}>BARBERFLOW PREMIUM</span>
 
-      <div>
-        <strong>{dashboard.pendentes}</strong>
-        <span>Pendentes</span>
-      </div>
+              <h1>Gestão premium para barbearias modernas</h1>
 
-      <div>
-        <strong>{dashboard.cancelados}</strong>
-        <span>Cancelados</span>
-      </div>
+              <p>
+                Controle completo de clientes, barbeiros, agenda, serviços e
+                faturamento em uma única plataforma.
+              </p>
+            </div>
+
+            <div className={styles.heroStats}>
+              <div>
+                <span>Faturamento</span>
+
+                <strong>
+                  {(dashboard?.faturamentoRealizado ?? 0).toLocaleString(
+                    "pt-BR",
+                    {
+                      style: "currency",
+                      currency: "BRL",
+                    }
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>Agendamentos</span>
+
+                <strong>{dashboard?.totalAtendimentos ?? 0}</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.cards}>
+          <div className={styles.card}>
+            <span>Clientes</span>
+            <strong>{dashboard?.clientes ?? 0}</strong>
+          </div>
+
+          <div className={styles.card}>
+            <span>Barbeiros</span>
+            <strong>{dashboard?.profissionaisAtivos ?? 0}</strong>
+          </div>
+
+          <div className={styles.card}>
+            <span>Serviços</span>
+            <strong>{dashboard?.procedimentosAtivos ?? 0}</strong>
+          </div>
+
+          <div className={styles.card}>
+            <span>Confirmados</span>
+            <strong>{dashboard?.confirmados ?? 0}</strong>
+          </div>
+        </section>
+
+        <section className={styles.chartsGrid}>
+          <div className={styles.chartCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2>Status dos agendamentos</h2>
+                <span>Distribuição operacional</span>
+              </div>
+            </div>
+
+            <div className={styles.chartBox}>
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={72}
+                    outerRadius={105}
+                    paddingAngle={4}
+                  >
+                    {statusData.map((item) => (
+                      <Cell key={item.name} fill={item.color} />
+                    ))}
+                  </Pie>
+
+                  <Tooltip
+                    contentStyle={{
+                      background: "#111",
+                      border: "1px solid rgba(214,163,84,0.2)",
+                      borderRadius: "12px",
+                      color: "#fff",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className={styles.legend}>
+              {statusData.map((item) => (
+                <div key={item.name}>
+                  <span style={{ background: item.color }} />
+                  {item.name}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.chartCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2>Faturamento por barbeiro</h2>
+                <span>Receita acumulada por profissional</span>
+              </div>
+            </div>
+
+            <div className={styles.chartBox}>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={faturamentoPorBarbeiro}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+
+                  <XAxis
+                    dataKey="name"
+                    stroke="#a1a1aa"
+                    tick={{ fontSize: 12 }}
+                  />
+
+                  <YAxis stroke="#a1a1aa" tick={{ fontSize: 12 }} />
+
+                  <Tooltip
+                    contentStyle={{
+                      background: "#111",
+                      border: "1px solid rgba(214,163,84,0.2)",
+                      borderRadius: "12px",
+                      color: "#fff",
+                    }}
+                    formatter={(value) =>
+                      Number(value).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })
+                    }
+                  />
+
+                  <Bar dataKey="value" fill="#d6a354" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.grid}>
+          <div className={styles.largeCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2>Próximos agendamentos</h2>
+                <span>{atendimentos.length} registros</span>
+              </div>
+            </div>
+
+            <div className={styles.tableWrapper}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Barbeiro</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {atendimentos.slice(0, 6).map((atendimento) => (
+                    <tr key={atendimento.id}>
+                      <td>{atendimento.cliente.nome}</td>
+                      <td>{atendimento.profissional.nome}</td>
+                      <td>
+                        {new Date(atendimento.data).toLocaleDateString(
+                          "pt-BR"
+                        )}
+                      </td>
+                      <td>
+                        {atendimento.valorTotal.toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            atendimento.status === "CONFIRMADO"
+                              ? styles.confirmado
+                              : atendimento.status === "CANCELADO"
+                              ? styles.cancelado
+                              : atendimento.status === "REALIZADO"
+                              ? styles.realizado
+                              : styles.pendente
+                          }
+                        >
+                          {atendimento.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className={styles.sideCard}>
+            <h2>Performance</h2>
+
+            <div className={styles.indicator}>
+              <span>Pendentes</span>
+              <strong>{dashboard?.pendentes ?? 0}</strong>
+            </div>
+
+            <div className={styles.indicator}>
+              <span>Realizados</span>
+              <strong>{dashboard?.realizados ?? 0}</strong>
+            </div>
+
+            <div className={styles.indicator}>
+              <span>Cancelados</span>
+              <strong>{dashboard?.cancelados ?? 0}</strong>
+            </div>
+
+            <div className={styles.indicator}>
+              <span>Faturamento previsto</span>
+
+              <strong>
+                {(dashboard?.faturamentoPrevisto ?? 0).toLocaleString(
+                  "pt-BR",
+                  {
+                    style: "currency",
+                    currency: "BRL",
+                  }
+                )}
+              </strong>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
-  )}
-</header>
-
-      <section className="grid">
-        <div className="card">
-          <h2>Cadastrar Cliente</h2>
-
-          <form onSubmit={criarCliente} className="form">
-            <input
-              placeholder="Nome do cliente"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-            />
-
-            <input
-              placeholder="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-
-            <input
-              placeholder="Telefone"
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
-              required
-            />
-
-            <button type="submit">Cadastrar cliente</button>
-          </form>
-        </div>
-
-        <div className="card">
-          <h2>Novo Agendamento</h2>
-
-          <form onSubmit={criarAgendamento} className="form">
-            <select
-              value={clienteId}
-              onChange={(e) => setClienteId(e.target.value)}
-              required
-            >
-              <option value="">Selecione um cliente</option>
-              {clientes.map((cliente) => (
-                <option key={cliente.id} value={cliente.id}>
-                  {cliente.nome}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={servicoId}
-              onChange={(e) => setServicoId(e.target.value)}
-              required
-            >
-              <option value="">Selecione um serviço</option>
-              {servicos.map((servico) => (
-                <option key={servico.id} value={servico.id}>
-                  {servico.nome} - R$ {servico.preco.toFixed(2)}
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="datetime-local"
-              value={data}
-              onChange={(e) => setData(e.target.value)}
-              required
-            />
-
-            <button type="submit">Cadastrar agendamento</button>
-          </form>
-        </div>
-      </section>
-
-      <section className="card full">
-        <div className="section-title">
-          <div>
-            <h2>Agendamentos</h2>
-            <p>Consulte, visualize detalhes e cancele agendamentos.</p>
-          </div>
-          <span>{agendamentos.length} registros</span>
-        </div>
-
-        <div className="form" style={{ marginBottom: 20 }}>
-          <div className="grid">
-            <input
-              type="date"
-              value={dataInicio}
-              onChange={(e) => setDataInicio(e.target.value)}
-            />
-
-            <input
-              type="date"
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: 12 }}>
-            <button type="button" onClick={filtrarAgendamentos}>
-              Filtrar por período
-            </button>
-
-            <button type="button" onClick={carregarDados}>
-              Limpar filtro
-            </button>
-          </div>
-        </div>
-
-        <div className="table">
-          {agendamentos.map((agendamento) => (
-            <div key={agendamento.id} className="row">
-              <div>
-                <strong>{agendamento.cliente.nome}</strong>
-                <p>
-                  Cliente: {agendamento.cliente.email} |{" "}
-                  {agendamento.cliente.telefone}
-                </p>
-                <p>
-                  Serviços:{" "}
-                  {agendamento.servicos
-                    .map((item) => item.servico.nome)
-                    .join(", ")}
-                </p>
-              </div>
-
-              <div>
-                <strong>Data e horário</strong>
-                <p>{new Date(agendamento.data).toLocaleString("pt-BR")}</p>
-              </div>
-
-              <span className={`status ${agendamento.status.toLowerCase()}`}>
-                {agendamento.status}
-              </span>
-
-                            <div style={{ display: "flex", gap: 8 }}>
-                            <button
-  type="button"
-  onClick={() => confirmarAgendamento(agendamento.id)}
-  disabled={agendamento.status !== "PENDENTE"}
->
-  Confirmar
-</button>
-
-  <button
-    className="danger"
-    type="button"
-    onClick={() => cancelarAgendamento(agendamento.id)}
-    disabled={agendamento.status === "CANCELADO"}
-  >
-    {agendamento.status === "CANCELADO" ? "Cancelado" : "Cancelar"}
-  </button>
-</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="card full">
-        <div className="section-title">
-          <h2>Clientes</h2>
-          <span>{clientes.length} cadastrados</span>
-        </div>
-
-        <div className="clients">
-          {clientes.map((cliente) => (
-            <div key={cliente.id} className="client">
-              <strong>{cliente.nome}</strong>
-              <span>{cliente.email}</span>
-              <span>{cliente.telefone}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    </main>
   );
 }

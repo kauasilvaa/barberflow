@@ -7,44 +7,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum StatusAtendimento {
+  PENDENTE
+  CONFIRMADO
+  REALIZADO
+  CANCELADO
+}
+
 model Cliente {
+  id               String   @id @default(uuid())
+  nome             String
+  email            String   @unique
+  telefone         String
+  cpf              String?  @unique
+  dataNascimento   DateTime?
+  observacoes      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  atendimentos     Atendimento[]
+}
+
+model Profissional {
+  id               String   @id @default(uuid())
+  nome             String
+  email            String   @unique
+  telefone         String
+  especialidade    String
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  atendimentos     Atendimento[]
+}
+
+model Procedimento {
+  id               String   @id @default(uuid())
+  nome             String
+  descricao        String?
+  categoria        String
+  preco            Float
+  duracao          Int
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  atendimentos     AtendimentoProcedimento[]
+}
+
+model Atendimento {
+  id               String            @id @default(uuid())
+  data             DateTime
+  status           StatusAtendimento @default(PENDENTE)
+  observacoes      String?
+  valorTotal       Float             @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  clienteId        String
+  cliente          Cliente           @relation(fields: [clienteId], references: [id])
+
+  profissionalId   String
+  profissional     Profissional      @relation(fields: [profissionalId], references: [id])
+
+  procedimentos    AtendimentoProcedimento[]
+}
+
+model AtendimentoProcedimento {
+  id               String @id @default(uuid())
+
+  atendimentoId    String
+  procedimentoId   String
+
+  atendimento      Atendimento  @relation(fields: [atendimentoId], references: [id])
+  procedimento     Procedimento @relation(fields: [procedimentoId], references: [id])
+}
+
+model Usuario {
   id        String   @id @default(uuid())
   nome      String
   email     String   @unique
-  telefone  String
+  senha     String
+  role      String   @default("ADMIN")
   createdAt DateTime @default(now())
-
-  agendamentos Agendamento[]
-}
-
-model Servico {
-  id        String   @id @default(uuid())
-  nome      String
-  preco     Float
-  duracao   Int // em minutos
-  createdAt DateTime @default(now())
-
-  agendamentos AgendamentoServico[]
-}
-
-model Agendamento {
-  id        String   @id @default(uuid())
-  data      DateTime
-  status    String   @default("PENDENTE")
-  createdAt DateTime @default(now())
-
-  clienteId String
-  cliente   Cliente @relation(fields: [clienteId], references: [id])
-
-  servicos AgendamentoServico[]
-}
-
-model AgendamentoServico {
-  id             String @id @default(uuid())
-
-  agendamentoId  String
-  servicoId      String
-
-  agendamento Agendamento @relation(fields: [agendamentoId], references: [id])
-  servico     Servico     @relation(fields: [servicoId], references: [id])
+  updatedAt DateTime @updatedAt
 }
