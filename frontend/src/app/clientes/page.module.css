@@ -201,3 +201,63 @@
     min-width: 720px;
   }
 }
+
+.successMessage {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #86efac;
+  font-weight: 600;
+}
+
+.errorMessage {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.secondaryButton {
+  background: transparent !important;
+  color: #d6a354 !important;
+  border: 1px solid rgba(214, 163, 84, 0.35) !important;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.editButton,
+.deleteButton {
+  border: none;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.editButton {
+  background: rgba(214, 163, 84, 0.14);
+  color: #f5b84b;
+  border: 1px solid rgba(214, 163, 84, 0.24);
+}
+
+.deleteButton {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.24);
+}
+
+.editButton:hover,
+.deleteButton:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}

@@ -1,8 +1,13 @@
 import { FastifyInstance } from "fastify";
 import { StatusAtendimento } from "@prisma/client";
 import { prisma } from "../lib/prisma";
+import { authMiddleware } from "../middlewares/auth";
+
 
 export async function dashboardRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", authMiddleware);
+  
+
   app.get("/dashboard", async () => {
     const totalAtendimentos = await prisma.atendimento.count();
 

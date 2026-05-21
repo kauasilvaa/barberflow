@@ -35,6 +35,13 @@ model Profissional {
   telefone         String
   especialidade    String
   ativo            Boolean  @default(true)
+  horaInicio      String   @default("09:00")
+  horaFim         String   @default("18:00")
+
+  intervaloInicio String?  @default("12:00")
+  intervaloFim    String?  @default("13:00")
+
+  diasAtivos      String   @default("1,2,3,4,5")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -91,4 +98,6 @@ model Usuario {
   role      String   @default("ADMIN")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  resetToken        String?
+  resetTokenExpires DateTime?
 }

@@ -1,38 +1,58 @@
 import { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma";
+import { authMiddleware } from "../middlewares/auth";
+import { adminMiddleware } from "../middlewares/adminMiddleware";
 
 export async function procedimentosRoutes(app: FastifyInstance) {
-  app.post("/procedimentos", async (request, reply) => {
-    const { nome, descricao, categoria, preco, duracao, ativo } = request.body as {
-      nome: string;
-      descricao?: string;
-      categoria: string;
-      preco: number;
-      duracao: number;
-      ativo?: boolean;
-    };
+  app.addHook("preHandler", authMiddleware);
 
-    if (!nome || !categoria || preco <= 0 || duracao <= 0) {
-      return reply.status(400).send({
-        message: "Nome, categoria, preço e duração válidos são obrigatórios",
-      });
-    }
-
-    const procedimento = await prisma.procedimento.create({
-      data: {
-        nome,
-        descricao,
-        categoria,
-        preco,
-        duracao,
-        ativo: ativo ?? true,
+  app.get("/public/procedimentos", async () => {
+    return prisma.procedimento.findMany({
+      where: {
+        ativo: true,
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
-
-    return reply.status(201).send(procedimento);
   });
 
-  app.get("/procedimentos", async () => {
+  app.post(
+    "/procedimentos",
+    { preHandler: adminMiddleware },
+    async (request, reply) => {
+      const { nome, descricao, categoria, preco, duracao, ativo } =
+        request.body as {
+          nome: string;
+          descricao?: string;
+          categoria: string;
+          preco: number;
+          duracao: number;
+          ativo?: boolean;
+        };
+
+      if (!nome || !categoria || preco <= 0 || duracao <= 0) {
+        return reply.status(400).send({
+          message: "Nome, categoria, preço e duração válidos são obrigatórios",
+        });
+      }
+
+      const procedimento = await prisma.procedimento.create({
+        data: {
+          nome,
+          descricao,
+          categoria,
+          preco,
+          duracao,
+          ativo: ativo ?? true,
+        },
+      });
+
+      return reply.status(201).send(procedimento);
+    }
+  );
+
+  app.get("/procedimentos", { preHandler: adminMiddleware }, async () => {
     return prisma.procedimento.findMany({
       orderBy: {
         createdAt: "desc",
@@ -40,85 +60,99 @@ export async function procedimentosRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/procedimentos/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
+  app.get(
+    "/procedimentos/:id",
+    { preHandler: adminMiddleware },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
 
-    const procedimento = await prisma.procedimento.findUnique({
-      where: { id },
-    });
-
-    if (!procedimento) {
-      return reply.status(404).send({
-        message: "Procedimento não encontrado",
+      const procedimento = await prisma.procedimento.findUnique({
+        where: { id },
       });
+
+      if (!procedimento) {
+        return reply.status(404).send({
+          message: "Procedimento não encontrado",
+        });
+      }
+
+      return procedimento;
     }
+  );
 
-    return procedimento;
-  });
+  app.put(
+    "/procedimentos/:id",
+    { preHandler: adminMiddleware },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
 
-  app.put("/procedimentos/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
+      const { nome, descricao, categoria, preco, duracao, ativo } =
+        request.body as {
+          nome?: string;
+          descricao?: string;
+          categoria?: string;
+          preco?: number;
+          duracao?: number;
+          ativo?: boolean;
+        };
 
-    const { nome, descricao, categoria, preco, duracao, ativo } = request.body as {
-      nome?: string;
-      descricao?: string;
-      categoria?: string;
-      preco?: number;
-      duracao?: number;
-      ativo?: boolean;
-    };
-
-    const procedimento = await prisma.procedimento.findUnique({
-      where: { id },
-    });
-
-    if (!procedimento) {
-      return reply.status(404).send({
-        message: "Procedimento não encontrado",
+      const procedimento = await prisma.procedimento.findUnique({
+        where: { id },
       });
-    }
 
-    const procedimentoAtualizado = await prisma.procedimento.update({
-      where: { id },
-      data: {
-        nome,
-        descricao,
-        categoria,
-        preco,
-        duracao,
-        ativo,
-      },
-    });
+      if (!procedimento) {
+        return reply.status(404).send({
+          message: "Procedimento não encontrado",
+        });
+      }
 
-    return procedimentoAtualizado;
-  });
-
-  app.delete("/procedimentos/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-
-    const procedimento = await prisma.procedimento.findUnique({
-      where: { id },
-      include: {
-        atendimentos: true,
-      },
-    });
-
-    if (!procedimento) {
-      return reply.status(404).send({
-        message: "Procedimento não encontrado",
+      const procedimentoAtualizado = await prisma.procedimento.update({
+        where: { id },
+        data: {
+          nome,
+          descricao,
+          categoria,
+          preco,
+          duracao,
+          ativo,
+        },
       });
-    }
 
-    if (procedimento.atendimentos.length > 0) {
-      return reply.status(400).send({
-        message: "Não é possível excluir procedimento com atendimentos vinculados",
+      return procedimentoAtualizado;
+    }
+  );
+
+  app.delete(
+    "/procedimentos/:id",
+    { preHandler: adminMiddleware },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      const procedimento = await prisma.procedimento.findUnique({
+        where: { id },
+        include: {
+          atendimentos: true,
+        },
       });
+
+      if (!procedimento) {
+        return reply.status(404).send({
+          message: "Procedimento não encontrado",
+        });
+      }
+
+      if (procedimento.atendimentos.length > 0) {
+        return reply.status(400).send({
+          message:
+            "Não é possível excluir procedimento com atendimentos vinculados",
+        });
+      }
+
+      await prisma.procedimento.delete({
+        where: { id },
+      });
+
+      return reply.status(204).send();
     }
-
-    await prisma.procedimento.delete({
-      where: { id },
-    });
-
-    return reply.status(204).send();
-  });
+  );
 }

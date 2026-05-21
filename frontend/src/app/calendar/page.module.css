@@ -1,0 +1,175 @@
+.container {
+  margin-left: 270px;
+  width: calc(100% - 270px);
+  min-height: 100vh;
+  padding: 40px;
+}
+
+.hero {
+  background:
+    linear-gradient(135deg, rgba(0, 0, 0, 0.88), rgba(20, 20, 20, 0.94)),
+    radial-gradient(circle at top right, rgba(214, 163, 84, 0.2), transparent 36%);
+  border: 1px solid rgba(214, 163, 84, 0.14);
+  border-radius: 30px;
+  padding: 38px;
+  margin-bottom: 28px;
+}
+
+.hero span {
+  display: inline-flex;
+  margin-bottom: 16px;
+  padding: 9px 13px;
+  border-radius: 999px;
+  background: rgba(214, 163, 84, 0.14);
+  border: 1px solid rgba(214, 163, 84, 0.22);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.hero h1 {
+  font-size: 42px;
+  margin-bottom: 12px;
+}
+
+.hero p {
+  max-width: 760px;
+  color: #d4d4d8;
+  line-height: 1.7;
+}
+
+.calendarCard {
+  height: 780px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(214, 163, 84, 0.08);
+  border-radius: 28px;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.calendarCard :global(.rbc-calendar) {
+  color: #f8fafc;
+}
+
+.calendarCard :global(.rbc-toolbar) {
+  margin-bottom: 22px;
+}
+
+.calendarCard :global(.rbc-toolbar-label) {
+  color: var(--primary);
+  font-size: 22px;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.calendarCard :global(.rbc-btn-group button) {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(214, 163, 84, 0.12);
+  color: #f8fafc;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.calendarCard :global(.rbc-btn-group button:hover),
+.calendarCard :global(.rbc-btn-group button.rbc-active) {
+  background: rgba(214, 163, 84, 0.16);
+  color: var(--primary);
+}
+
+.calendarCard :global(.rbc-month-view),
+.calendarCard :global(.rbc-time-view),
+.calendarCard :global(.rbc-agenda-view) {
+  border: 1px solid rgba(214, 163, 84, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.calendarCard :global(.rbc-header) {
+  background: rgba(214, 163, 84, 0.08);
+  border-color: rgba(214, 163, 84, 0.1);
+  color: #d4d4d8;
+  padding: 12px;
+  text-transform: capitalize;
+}
+
+.calendarCard :global(.rbc-time-content),
+.calendarCard :global(.rbc-time-header-content),
+.calendarCard :global(.rbc-day-bg),
+.calendarCard :global(.rbc-month-row),
+.calendarCard :global(.rbc-date-cell),
+.calendarCard :global(.rbc-timeslot-group),
+.calendarCard :global(.rbc-time-slot) {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.calendarCard :global(.rbc-today) {
+  background: rgba(214, 163, 84, 0.06);
+}
+
+.calendarCard :global(.rbc-off-range-bg) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.calendarCard :global(.rbc-time-gutter),
+.calendarCard :global(.rbc-label) {
+  color: #a1a1aa;
+}
+
+.eventContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eventContent strong {
+  font-size: 12px;
+  color: white;
+}
+
+.eventContent span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.confirmadoEvento {
+  background: rgba(34, 197, 94, 0.78) !important;
+  border: 1px solid rgba(34, 197, 94, 0.9) !important;
+}
+
+.canceladoEvento {
+  background: rgba(239, 68, 68, 0.72) !important;
+  border: 1px solid rgba(239, 68, 68, 0.9) !important;
+}
+
+.realizadoEvento {
+  background: rgba(214, 163, 84, 0.78) !important;
+  border: 1px solid rgba(214, 163, 84, 0.95) !important;
+}
+
+.pendenteEvento {
+  background: rgba(245, 158, 11, 0.78) !important;
+  border: 1px solid rgba(245, 158, 11, 0.95) !important;
+}
+
+@media (max-width: 768px) {
+  .container {
+    margin-left: 0;
+    width: 100%;
+    padding: 24px;
+    padding-bottom: 120px;
+  }
+
+  .hero {
+    padding: 28px;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+  }
+
+  .calendarCard {
+    height: 680px;
+    padding: 14px;
+  }
+}

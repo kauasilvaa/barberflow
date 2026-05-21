@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import styles from "./page.module.css";
-
-import { Sidebar } from "../../components/Sidebar";
-import { API_URL } from "../../services/api";
+import { api } from "../../services/api";
 
 type Cliente = {
   id: string;
@@ -18,51 +15,132 @@ type Cliente = {
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
 
+  const [clienteEditandoId, setClienteEditandoId] = useState<string | null>(
+    null
+  );
+
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
 
+  const [mensagem, setMensagem] = useState("");
+  const [erro, setErro] = useState("");
+
   async function carregarClientes() {
     try {
-      const response = await fetch(`${API_URL}/clientes`);
+      const response = await api("/clientes");
       const data = await response.json();
 
-      setClientes(data);
+      if (Array.isArray(data)) {
+        setClientes(data);
+      } else {
+        setClientes([]);
+      }
     } catch (error) {
       console.error(error);
+      setErro("Não foi possível carregar os clientes.");
     }
   }
 
-  async function cadastrarCliente() {
+  function limparFormulario() {
+    setClienteEditandoId(null);
+    setNome("");
+    setEmail("");
+    setTelefone("");
+    setCpf("");
+  }
+
+  function preencherFormulario(cliente: Cliente) {
+    setClienteEditandoId(cliente.id);
+    setNome(cliente.nome);
+    setEmail(cliente.email);
+    setTelefone(cliente.telefone);
+    setCpf(cliente.cpf ?? "");
+    setMensagem("");
+    setErro("");
+  }
+
+  async function salvarCliente() {
+    setMensagem("");
+    setErro("");
+
+    if (!nome || !email || !telefone) {
+      setErro("Preencha nome, email e telefone.");
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_URL}/clientes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const rota = clienteEditandoId
+        ? `/clientes/${clienteEditandoId}`
+        : "/clientes";
+
+      const metodo = clienteEditandoId ? "PUT" : "POST";
+
+      const response = await api(rota, {
+        method: metodo,
         body: JSON.stringify({
           nome,
           email,
           telefone,
-          cpf,
+          cpf: cpf || undefined,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        alert(error.message);
+        setErro(data.message || "Não foi possível salvar o cliente.");
         return;
       }
 
-      setNome("");
-      setEmail("");
-      setTelefone("");
-      setCpf("");
+      setMensagem(
+        clienteEditandoId
+          ? "Cliente atualizado com sucesso."
+          : "Cliente cadastrado com sucesso."
+      );
+
+      limparFormulario();
+      carregarClientes();
+    } catch (error) {
+      console.error(error);
+      setErro("Erro inesperado ao salvar cliente.");
+    }
+  }
+
+  async function excluirCliente(cliente: Cliente) {
+    const confirmar = window.confirm(
+      `Deseja realmente excluir o cliente ${cliente.nome}?`
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
+    setMensagem("");
+    setErro("");
+
+    try {
+      const response = await api(`/clientes/${cliente.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setErro(data.message || "Não foi possível excluir o cliente.");
+        return;
+      }
+
+      setMensagem("Cliente excluído com sucesso.");
+
+      if (clienteEditandoId === cliente.id) {
+        limparFormulario();
+      }
 
       carregarClientes();
     } catch (error) {
       console.error(error);
+      setErro("Erro inesperado ao excluir cliente.");
     }
   }
 
@@ -72,8 +150,6 @@ export default function ClientesPage() {
 
   return (
     <div className={styles.container}>
-      <Sidebar />
-
       <main className={styles.content}>
         <section className={styles.hero}>
           <span>CLIENTES BARBERFLOW</span>
@@ -81,7 +157,7 @@ export default function ClientesPage() {
           <h1>Clientes da barbearia</h1>
 
           <p>
-            Cadastre e acompanhe os clientes da barbearia com uma base
+            Cadastre, edite e acompanhe os clientes da barbearia com uma base
             organizada, profissional e pronta para histórico de agendamentos.
           </p>
         </section>
@@ -89,10 +165,18 @@ export default function ClientesPage() {
         <section className={styles.formCard}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2>Novo cliente</h2>
-              <p>Adicione um novo cliente à base da barbearia.</p>
+              <h2>{clienteEditandoId ? "Editar cliente" : "Novo cliente"}</h2>
+
+              <p>
+                {clienteEditandoId
+                  ? "Atualize os dados do cliente selecionado."
+                  : "Adicione um novo cliente à base da barbearia."}
+              </p>
             </div>
           </div>
+
+          {mensagem && <div className={styles.successMessage}>{mensagem}</div>}
+          {erro && <div className={styles.errorMessage}>{erro}</div>}
 
           <div className={styles.form}>
             <input
@@ -119,7 +203,19 @@ export default function ClientesPage() {
               onChange={(e) => setCpf(e.target.value)}
             />
 
-            <button onClick={cadastrarCliente}>Cadastrar cliente</button>
+            <button onClick={salvarCliente}>
+              {clienteEditandoId ? "Salvar alterações" : "Cadastrar cliente"}
+            </button>
+
+            {clienteEditandoId && (
+              <button
+                type="button"
+                onClick={limparFormulario}
+                className={styles.secondaryButton}
+              >
+                Cancelar edição
+              </button>
+            )}
           </div>
         </section>
 
@@ -141,16 +237,42 @@ export default function ClientesPage() {
                   <th>Email</th>
                   <th>Telefone</th>
                   <th>CPF</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
 
               <tbody>
+                {clientes.length === 0 && (
+                  <tr>
+                    <td colSpan={5}>Nenhum cliente cadastrado.</td>
+                  </tr>
+                )}
+
                 {clientes.map((cliente) => (
                   <tr key={cliente.id}>
                     <td>{cliente.nome}</td>
                     <td>{cliente.email}</td>
                     <td>{cliente.telefone}</td>
                     <td>{cliente.cpf || "-"}</td>
+                    <td>
+                      <div className={styles.actions}>
+                        <button
+                          type="button"
+                          onClick={() => preencherFormulario(cliente)}
+                          className={styles.editButton}
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => excluirCliente(cliente)}
+                          className={styles.deleteButton}
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

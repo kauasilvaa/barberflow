@@ -1,0 +1,165 @@
+.container {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(214, 163, 84, 0.18), transparent 34%),
+    #090909;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 540px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(214, 163, 84, 0.14);
+  border-radius: 34px;
+  padding: 42px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.backButton {
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 28px;
+  font-weight: 700;
+}
+
+.backButton:hover {
+  color: var(--primary);
+}
+
+.brand {
+  margin-bottom: 28px;
+}
+
+.brand strong {
+  display: block;
+  color: var(--primary);
+  font-size: 30px;
+  margin-bottom: 4px;
+}
+
+.brand span {
+  color: #a1a1aa;
+  font-weight: 700;
+}
+
+.header {
+  margin-bottom: 28px;
+}
+
+.header h1 {
+  font-size: 38px;
+  margin-bottom: 12px;
+}
+
+.header p {
+  color: #a1a1aa;
+  line-height: 1.7;
+}
+
+.successMessage,
+.errorMessage {
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 18px;
+  font-weight: 700;
+}
+
+.successMessage {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  color: #86efac;
+}
+
+.errorMessage {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  color: #fca5a5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form label span {
+  color: #d4d4d8;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.inputWrapper {
+  height: 58px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(214, 163, 84, 0.12);
+  border-radius: 18px;
+  padding: 0 16px;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inputWrapper:focus-within {
+  border-color: rgba(214, 163, 84, 0.42);
+}
+
+.inputWrapper input {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 15px;
+}
+
+.inputWrapper button {
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.submitButton {
+  height: 58px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #d6a354, #f5b84b);
+  color: black;
+  font-weight: 950;
+  font-size: 15px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 30px 24px;
+  }
+
+  .header h1 {
+    font-size: 32px;
+  }
+}

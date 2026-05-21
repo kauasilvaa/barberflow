@@ -20,6 +20,9 @@
   --success: #22c55e;
   --warning: #f59e0b;
   --danger: #ef4444;
+
+  --brown: #f8fafc;
+  --leather: #d6a354;
 }
 
 body {
@@ -45,4 +48,28 @@ textarea {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+strong {
+  color: var(--text);
+}
+
+p,
+span,
+label,
+td,
+th {
+  color: inherit;
+}
+
+input,
+select,
+textarea {
+  color: var(--text);
 }

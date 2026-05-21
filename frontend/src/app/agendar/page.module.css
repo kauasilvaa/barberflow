@@ -1,0 +1,310 @@
+.container {
+  width: 100%;
+}
+
+.content {
+  margin-left: 270px;
+  width: calc(100% - 270px);
+  padding: 40px;
+}
+
+.hero {
+  background:
+    linear-gradient(135deg, rgba(0, 0, 0, 0.86), rgba(20, 20, 20, 0.92)),
+    radial-gradient(circle at top right, rgba(214, 163, 84, 0.18), transparent 35%);
+  border: 1px solid rgba(214, 163, 84, 0.14);
+  border-radius: 30px;
+  padding: 38px;
+  margin-bottom: 28px;
+}
+
+.hero span {
+  display: inline-flex;
+  margin-bottom: 16px;
+  padding: 9px 13px;
+  border-radius: 999px;
+  background: rgba(214, 163, 84, 0.14);
+  border: 1px solid rgba(214, 163, 84, 0.2);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.hero h1 {
+  font-size: 42px;
+  margin-bottom: 12px;
+}
+
+.hero p {
+  max-width: 760px;
+  color: #d4d4d8;
+  line-height: 1.7;
+}
+
+.successMessage,
+.errorMessage {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-weight: 600;
+}
+
+.successMessage {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #86efac;
+}
+
+.errorMessage {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.bookingGrid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.formCard,
+.summaryCard,
+.servicesSection {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(214, 163, 84, 0.08);
+  border-radius: 26px;
+  padding: 28px;
+}
+
+.formCard h2 {
+  margin-bottom: 20px;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.form select,
+.form input {
+  height: 54px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(214, 163, 84, 0.12);
+  border-radius: 16px;
+  padding: 0 16px;
+  color: white;
+  font-size: 14px;
+  outline: none;
+}
+
+.form option {
+  color: black;
+}
+
+.submitButton {
+  margin-top: 20px;
+  width: 100%;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #d6a354, #f5b84b);
+  color: black;
+  font-weight: 900;
+  border: none;
+  cursor: pointer;
+}
+
+.summaryCard span {
+  color: #a1a1aa;
+}
+
+.summaryCard strong {
+  display: block;
+  margin: 14px 0;
+  color: var(--primary);
+  font-size: 32px;
+}
+
+.summaryCard p {
+  color: #d4d4d8;
+  margin-top: 10px;
+}
+
+.sectionHeader {
+  margin-bottom: 22px;
+}
+
+.sectionHeader h2 {
+  margin-bottom: 6px;
+  font-size: 24px;
+}
+
+.sectionHeader p {
+  color: #a1a1aa;
+}
+
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.serviceCard,
+.serviceSelected {
+  text-align: left;
+  border-radius: 22px;
+  padding: 22px;
+  min-height: 210px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.serviceCard {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(214, 163, 84, 0.1);
+  color: white;
+}
+
+.serviceSelected {
+  background: rgba(214, 163, 84, 0.16);
+  border: 1px solid rgba(214, 163, 84, 0.45);
+  color: white;
+}
+
+.serviceCard:hover,
+.serviceSelected:hover {
+  transform: translateY(-2px);
+}
+
+.serviceCard span,
+.serviceSelected span {
+  display: inline-flex;
+  margin-bottom: 14px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(214, 163, 84, 0.12);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.serviceCard h3,
+.serviceSelected h3 {
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+.serviceCard p,
+.serviceSelected p {
+  min-height: 52px;
+  color: #a1a1aa;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.serviceCard div,
+.serviceSelected div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.serviceCard strong,
+.serviceSelected strong {
+  color: var(--primary);
+}
+
+.serviceCard small,
+.serviceSelected small {
+  color: #d4d4d8;
+}
+
+@media (max-width: 1200px) {
+  .bookingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .servicesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    margin-left: 0;
+    width: 100%;
+    padding: 24px;
+    padding-bottom: 120px;
+  }
+
+  .hero {
+    padding: 28px;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+  }
+
+  .form,
+  .servicesGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.horariosBox {
+  margin-top: 24px;
+}
+
+.horariosBox h3 {
+  margin-bottom: 14px;
+  font-size: 20px;
+}
+
+.horariosGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.horarioItem,
+.horarioSelecionado {
+  height: 48px;
+  border-radius: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.horarioItem {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(214, 163, 84, 0.12);
+  color: #f8fafc;
+}
+
+.horarioSelecionado {
+  background: linear-gradient(135deg, #d6a354, #f5b84b);
+  border: 1px solid rgba(214, 163, 84, 0.45);
+  color: #090909;
+}
+
+.horarioItem:hover,
+.horarioSelecionado:hover {
+  transform: translateY(-1px);
+}
+
+.emptyHorarios {
+  grid-column: 1 / -1;
+  color: #a1a1aa;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px dashed rgba(214, 163, 84, 0.18);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+@media (max-width: 768px) {
+  .horariosGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

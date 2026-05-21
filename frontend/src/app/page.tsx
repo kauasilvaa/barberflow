@@ -1,24 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+  CalendarCheck,
+  Clock,
+  DollarSign,
+  Scissors,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 
 import styles from "./page.module.css";
-
-import { Sidebar } from "../components/Sidebar";
-import { API_URL } from "../services/api";
+import { api } from "../services/api";
 
 type DashboardData = {
   totalAtendimentos: number;
@@ -38,318 +31,307 @@ type Atendimento = {
   data: string;
   status: string;
   valorTotal: number;
-
   cliente: {
     nome: string;
   };
-
   profissional: {
     nome: string;
   };
+  procedimentos?: {
+    procedimento: {
+      nome: string;
+      duracao?: number;
+    };
+  }[];
 };
 
 export default function Home() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
 
-  async function carregarDashboard() {
+  async function carregarDados() {
     try {
       const [dashboardRes, atendimentosRes] = await Promise.all([
-        fetch(`${API_URL}/dashboard`),
-        fetch(`${API_URL}/atendimentos`),
+        api("/dashboard"),
+        api("/atendimentos"),
       ]);
 
       const dashboardData = await dashboardRes.json();
       const atendimentosData = await atendimentosRes.json();
 
-      setDashboard(dashboardData);
-      setAtendimentos(atendimentosData);
+      if (dashboardRes.ok) {
+        setDashboard(dashboardData);
+      }
+
+      setAtendimentos(Array.isArray(atendimentosData) ? atendimentosData : []);
     } catch (error) {
       console.error(error);
+      setAtendimentos([]);
     }
   }
 
-  const statusData = useMemo(() => {
-    return [
-      {
-        name: "Pendentes",
-        value: dashboard?.pendentes ?? 0,
-        color: "#f59e0b",
-      },
-      {
-        name: "Confirmados",
-        value: dashboard?.confirmados ?? 0,
-        color: "#22c55e",
-      },
-      {
-        name: "Realizados",
-        value: dashboard?.realizados ?? 0,
-        color: "#d6a354",
-      },
-      {
-        name: "Cancelados",
-        value: dashboard?.cancelados ?? 0,
-        color: "#ef4444",
-      },
-    ];
-  }, [dashboard]);
+  const hoje = new Date().toISOString().slice(0, 10);
 
-  const faturamentoPorBarbeiro = useMemo(() => {
-    const mapa = new Map<string, number>();
+  const atendimentosHoje = useMemo(() => {
+    return atendimentos
+      .filter((atendimento) => {
+        return new Date(atendimento.data).toISOString().slice(0, 10) === hoje;
+      })
+      .sort(
+        (a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()
+      );
+  }, [atendimentos, hoje]);
 
-    atendimentos.forEach((atendimento) => {
-      const barbeiro = atendimento.profissional.nome;
-      const valorAtual = mapa.get(barbeiro) ?? 0;
+  const proximoAtendimento = useMemo(() => {
+    const agora = new Date();
 
-      mapa.set(barbeiro, valorAtual + atendimento.valorTotal);
+    return atendimentosHoje.find((atendimento) => {
+      return (
+        new Date(atendimento.data) >= agora &&
+        atendimento.status !== "CANCELADO" &&
+        atendimento.status !== "REALIZADO"
+      );
     });
+  }, [atendimentosHoje]);
 
-    return Array.from(mapa.entries()).map(([name, value]) => ({
-      name,
-      value,
-    }));
-  }, [atendimentos]);
+  const faturamentoHoje = useMemo(() => {
+    return atendimentosHoje
+      .filter((item) => item.status !== "CANCELADO")
+      .reduce((total, item) => total + Number(item.valorTotal ?? 0), 0);
+  }, [atendimentosHoje]);
+
+  const taxaOcupacao = useMemo(() => {
+    if (atendimentosHoje.length === 0) {
+      return 0;
+    }
+
+    const ocupados = atendimentosHoje.filter(
+      (item) => item.status !== "CANCELADO"
+    ).length;
+
+    return Math.round((ocupados / atendimentosHoje.length) * 100);
+  }, [atendimentosHoje]);
 
   useEffect(() => {
-    carregarDashboard();
+    carregarDados();
   }, []);
 
   return (
     <div className={styles.container}>
-      <Sidebar />
-
       <main className={styles.content}>
-        <section className={styles.hero}>
-          <div className={styles.heroOverlay} />
+        <section className={styles.header}>
+          <div>
+            <span>PAINEL OPERACIONAL</span>
 
-          <div className={styles.heroContent}>
-            <div>
-              <span className={styles.badge}>BARBERFLOW PREMIUM</span>
+            <h1>Controle da barbearia</h1>
 
-              <h1>Gestão premium para barbearias modernas</h1>
+            <p>
+              Acompanhe os horários do dia, próximos clientes, faturamento e
+              movimentação da operação.
+            </p>
+          </div>
 
-              <p>
-                Controle completo de clientes, barbeiros, agenda, serviços e
-                faturamento em uma única plataforma.
-              </p>
+          <div className={styles.todayBox}>
+            <Clock size={20} />
+            <strong>
+              {new Date().toLocaleDateString("pt-BR", {
+                weekday: "long",
+                day: "2-digit",
+                month: "long",
+              })}
+            </strong>
+          </div>
+        </section>
+
+        <section className={styles.operationGrid}>
+          <div className={styles.nextClientCard}>
+            <div className={styles.cardLabel}>
+              <CalendarCheck size={18} />
+              Próximo atendimento
             </div>
 
-            <div className={styles.heroStats}>
-              <div>
-                <span>Faturamento</span>
-
-                <strong>
-                  {(dashboard?.faturamentoRealizado ?? 0).toLocaleString(
+            {proximoAtendimento ? (
+              <>
+                <div className={styles.nextTime}>
+                  {new Date(proximoAtendimento.data).toLocaleTimeString(
                     "pt-BR",
                     {
-                      style: "currency",
-                      currency: "BRL",
+                      hour: "2-digit",
+                      minute: "2-digit",
                     }
                   )}
-                </strong>
-              </div>
+                </div>
 
-              <div>
-                <span>Agendamentos</span>
+                <h2>{proximoAtendimento.cliente?.nome}</h2>
 
-                <strong>{dashboard?.totalAtendimentos ?? 0}</strong>
+                <p>
+                  Barbeiro:{" "}
+                  <strong>{proximoAtendimento.profissional?.nome}</strong>
+                </p>
+
+                <div className={styles.serviceList}>
+                  {proximoAtendimento.procedimentos?.map((item, index) => (
+                    <span key={index}>{item.procedimento.nome}</span>
+                  ))}
+                </div>
+
+                <div className={styles.nextFooter}>
+                  <strong>
+                    {Number(proximoAtendimento.valorTotal ?? 0).toLocaleString(
+                      "pt-BR",
+                      {
+                        style: "currency",
+                        currency: "BRL",
+                      }
+                    )}
+                  </strong>
+
+                  <span
+                    className={
+                      proximoAtendimento.status === "CONFIRMADO"
+                        ? styles.confirmado
+                        : styles.pendente
+                    }
+                  >
+                    {proximoAtendimento.status}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className={styles.noClient}>
+                <h2>Nenhum próximo atendimento</h2>
+                <p>A agenda ainda não possui próximo cliente para hoje.</p>
               </div>
+            )}
+          </div>
+
+          <div className={styles.metricsColumn}>
+            <div className={styles.metricCard}>
+              <DollarSign size={22} />
+              <span>Caixa do dia</span>
+              <strong>
+                {faturamentoHoje.toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })}
+              </strong>
+            </div>
+
+            <div className={styles.metricCard}>
+              <Scissors size={22} />
+              <span>Atendimentos hoje</span>
+              <strong>{atendimentosHoje.length}</strong>
+            </div>
+
+            <div className={styles.metricCard}>
+              <TrendingUp size={22} />
+              <span>Ocupação</span>
+              <strong>{taxaOcupacao}%</strong>
             </div>
           </div>
         </section>
 
-        <section className={styles.cards}>
-          <div className={styles.card}>
+        <section className={styles.summaryBar}>
+          <div>
+            <Users size={20} />
             <span>Clientes</span>
             <strong>{dashboard?.clientes ?? 0}</strong>
           </div>
 
-          <div className={styles.card}>
-            <span>Barbeiros</span>
+          <div>
+            <Scissors size={20} />
+            <span>Barbeiros ativos</span>
             <strong>{dashboard?.profissionaisAtivos ?? 0}</strong>
           </div>
 
-          <div className={styles.card}>
-            <span>Serviços</span>
-            <strong>{dashboard?.procedimentosAtivos ?? 0}</strong>
-          </div>
-
-          <div className={styles.card}>
+          <div>
+            <CalendarCheck size={20} />
             <span>Confirmados</span>
             <strong>{dashboard?.confirmados ?? 0}</strong>
           </div>
+
+          <div>
+            <DollarSign size={20} />
+            <span>Faturamento total</span>
+            <strong>
+              {(dashboard?.faturamentoRealizado ?? 0).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </strong>
+          </div>
         </section>
 
-        <section className={styles.chartsGrid}>
-          <div className={styles.chartCard}>
-            <div className={styles.cardHeader}>
+        <section className={styles.bottomGrid}>
+          <div className={styles.timelineCard}>
+            <div className={styles.sectionTitle}>
               <div>
-                <h2>Status dos agendamentos</h2>
-                <span>Distribuição operacional</span>
+                <h2>Agenda de hoje</h2>
+                <p>Fluxo operacional dos atendimentos do dia.</p>
               </div>
+
+              <span>{atendimentosHoje.length} horários</span>
             </div>
 
-            <div className={styles.chartBox}>
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={72}
-                    outerRadius={105}
-                    paddingAngle={4}
+            <div className={styles.timeline}>
+              {atendimentosHoje.length === 0 && (
+                <div className={styles.emptyState}>
+                  Nenhum atendimento marcado para hoje.
+                </div>
+              )}
+
+              {atendimentosHoje.slice(0, 8).map((atendimento) => (
+                <div key={atendimento.id} className={styles.timelineItem}>
+                  <div className={styles.hour}>
+                    {new Date(atendimento.data).toLocaleTimeString("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+
+                  <div className={styles.timelineInfo}>
+                    <strong>{atendimento.cliente?.nome}</strong>
+                    <span>{atendimento.profissional?.nome}</span>
+                  </div>
+
+                  <span
+                    className={
+                      atendimento.status === "CONFIRMADO"
+                        ? styles.confirmado
+                        : atendimento.status === "CANCELADO"
+                        ? styles.cancelado
+                        : atendimento.status === "REALIZADO"
+                        ? styles.realizado
+                        : styles.pendente
+                    }
                   >
-                    {statusData.map((item) => (
-                      <Cell key={item.name} fill={item.color} />
-                    ))}
-                  </Pie>
-
-                  <Tooltip
-                    contentStyle={{
-                      background: "#111",
-                      border: "1px solid rgba(214,163,84,0.2)",
-                      borderRadius: "12px",
-                      color: "#fff",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className={styles.legend}>
-              {statusData.map((item) => (
-                <div key={item.name}>
-                  <span style={{ background: item.color }} />
-                  {item.name}
+                    {atendimento.status}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className={styles.chartCard}>
-            <div className={styles.cardHeader}>
-              <div>
-                <h2>Faturamento por barbeiro</h2>
-                <span>Receita acumulada por profissional</span>
-              </div>
-            </div>
+          <div className={styles.cashCard}>
+            <h2>Resumo da operação</h2>
 
-            <div className={styles.chartBox}>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={faturamentoPorBarbeiro}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-
-                  <XAxis
-                    dataKey="name"
-                    stroke="#a1a1aa"
-                    tick={{ fontSize: 12 }}
-                  />
-
-                  <YAxis stroke="#a1a1aa" tick={{ fontSize: 12 }} />
-
-                  <Tooltip
-                    contentStyle={{
-                      background: "#111",
-                      border: "1px solid rgba(214,163,84,0.2)",
-                      borderRadius: "12px",
-                      color: "#fff",
-                    }}
-                    formatter={(value) =>
-                      Number(value).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })
-                    }
-                  />
-
-                  <Bar dataKey="value" fill="#d6a354" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.grid}>
-          <div className={styles.largeCard}>
-            <div className={styles.cardHeader}>
-              <div>
-                <h2>Próximos agendamentos</h2>
-                <span>{atendimentos.length} registros</span>
-              </div>
-            </div>
-
-            <div className={styles.tableWrapper}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th>Barbeiro</th>
-                    <th>Data</th>
-                    <th>Valor</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {atendimentos.slice(0, 6).map((atendimento) => (
-                    <tr key={atendimento.id}>
-                      <td>{atendimento.cliente.nome}</td>
-                      <td>{atendimento.profissional.nome}</td>
-                      <td>
-                        {new Date(atendimento.data).toLocaleDateString(
-                          "pt-BR"
-                        )}
-                      </td>
-                      <td>
-                        {atendimento.valorTotal.toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </td>
-                      <td>
-                        <span
-                          className={
-                            atendimento.status === "CONFIRMADO"
-                              ? styles.confirmado
-                              : atendimento.status === "CANCELADO"
-                              ? styles.cancelado
-                              : atendimento.status === "REALIZADO"
-                              ? styles.realizado
-                              : styles.pendente
-                          }
-                        >
-                          {atendimento.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className={styles.sideCard}>
-            <h2>Performance</h2>
-
-            <div className={styles.indicator}>
+            <div className={styles.cashLine}>
               <span>Pendentes</span>
               <strong>{dashboard?.pendentes ?? 0}</strong>
             </div>
 
-            <div className={styles.indicator}>
+            <div className={styles.cashLine}>
               <span>Realizados</span>
               <strong>{dashboard?.realizados ?? 0}</strong>
             </div>
 
-            <div className={styles.indicator}>
+            <div className={styles.cashLine}>
               <span>Cancelados</span>
               <strong>{dashboard?.cancelados ?? 0}</strong>
             </div>
 
-            <div className={styles.indicator}>
-              <span>Faturamento previsto</span>
-
+            <div className={styles.cashTotal}>
+              <span>Previsto</span>
               <strong>
                 {(dashboard?.faturamentoPrevisto ?? 0).toLocaleString(
                   "pt-BR",

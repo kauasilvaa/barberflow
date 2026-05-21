@@ -1,9 +1,12 @@
 import { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma";
+import { authMiddleware } from "../middlewares/auth";
+import { adminMiddleware } from "../middlewares/adminMiddleware";
 
 export async function clientesRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", authMiddleware);
+  app.addHook("preHandler", adminMiddleware);
 
-  // Criar cliente
   app.post("/clientes", async (request, reply) => {
     const {
       nome,
@@ -29,10 +32,7 @@ export async function clientesRoutes(app: FastifyInstance) {
 
     const clienteExistente = await prisma.cliente.findFirst({
       where: {
-        OR: [
-          { email },
-          cpf ? { cpf } : undefined,
-        ].filter(Boolean) as any,
+        OR: [{ email }, cpf ? { cpf } : undefined].filter(Boolean) as any,
       },
     });
 
@@ -49,16 +49,13 @@ export async function clientesRoutes(app: FastifyInstance) {
         telefone,
         cpf,
         observacoes,
-        dataNascimento: dataNascimento
-          ? new Date(dataNascimento)
-          : undefined,
+        dataNascimento: dataNascimento ? new Date(dataNascimento) : undefined,
       },
     });
 
     return reply.status(201).send(cliente);
   });
 
-  // Listar clientes
   app.get("/clientes", async () => {
     return prisma.cliente.findMany({
       orderBy: {
@@ -70,7 +67,6 @@ export async function clientesRoutes(app: FastifyInstance) {
     });
   });
 
-  // Buscar cliente por ID
   app.get("/clientes/:id", async (request, reply) => {
     const { id } = request.params as {
       id: string;
@@ -104,7 +100,6 @@ export async function clientesRoutes(app: FastifyInstance) {
     return cliente;
   });
 
-  // Atualizar cliente
   app.put("/clientes/:id", async (request, reply) => {
     const { id } = request.params as {
       id: string;
@@ -144,16 +139,13 @@ export async function clientesRoutes(app: FastifyInstance) {
         telefone,
         cpf,
         observacoes,
-        dataNascimento: dataNascimento
-          ? new Date(dataNascimento)
-          : undefined,
+        dataNascimento: dataNascimento ? new Date(dataNascimento) : undefined,
       },
     });
 
     return clienteAtualizado;
   });
 
-  // Deletar cliente
   app.delete("/clientes/:id", async (request, reply) => {
     const { id } = request.params as {
       id: string;
@@ -174,8 +166,7 @@ export async function clientesRoutes(app: FastifyInstance) {
 
     if (cliente.atendimentos.length > 0) {
       return reply.status(400).send({
-        message:
-          "Não é possível excluir cliente com atendimentos vinculados",
+        message: "Não é possível excluir cliente com atendimentos vinculados",
       });
     }
 
@@ -185,5 +176,4 @@ export async function clientesRoutes(app: FastifyInstance) {
 
     return reply.status(204).send();
   });
-
 }

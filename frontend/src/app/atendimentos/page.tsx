@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
 import styles from "./page.module.css";
-
-import { Sidebar } from "../../components/Sidebar";
-import { API_URL } from "../../services/api";
+import { api } from "../../services/api";
 
 type Cliente = {
   id: string;
@@ -47,105 +44,234 @@ export default function AtendimentosPage() {
   const [profissionalId, setProfissionalId] = useState("");
   const [data, setData] = useState("");
   const [procedimentoIds, setProcedimentoIds] = useState<string[]>([]);
+  const [observacoes, setObservacoes] = useState("");
+
+  const [atendimentoEditandoId, setAtendimentoEditandoId] = useState<
+    string | null
+  >(null);
+
+  const [mensagem, setMensagem] = useState("");
+  const [erro, setErro] = useState("");
 
   const valorTotal = useMemo(() => {
     return procedimentos
       .filter((procedimento) => procedimentoIds.includes(procedimento.id))
-      .reduce((total, procedimento) => total + procedimento.preco, 0);
+      .reduce((total, procedimento) => total + Number(procedimento.preco), 0);
   }, [procedimentos, procedimentoIds]);
 
   async function carregarDados() {
-    const [clientesRes, profissionaisRes, procedimentosRes, atendimentosRes] =
-      await Promise.all([
-        fetch(`${API_URL}/clientes`),
-        fetch(`${API_URL}/profissionais`),
-        fetch(`${API_URL}/procedimentos`),
-        fetch(`${API_URL}/atendimentos`),
-      ]);
+    try {
+      const [clientesRes, profissionaisRes, procedimentosRes, atendimentosRes] =
+        await Promise.all([
+          api("/clientes"),
+          api("/profissionais"),
+          api("/procedimentos"),
+          api("/atendimentos"),
+        ]);
 
-    setClientes(await clientesRes.json());
-    setProfissionais(await profissionaisRes.json());
-    setProcedimentos(await procedimentosRes.json());
-    setAtendimentos(await atendimentosRes.json());
+      const clientesData = await clientesRes.json();
+      const profissionaisData = await profissionaisRes.json();
+      const procedimentosData = await procedimentosRes.json();
+      const atendimentosData = await atendimentosRes.json();
+
+      setClientes(Array.isArray(clientesData) ? clientesData : []);
+      setProfissionais(
+        Array.isArray(profissionaisData) ? profissionaisData : []
+      );
+      setProcedimentos(
+        Array.isArray(procedimentosData) ? procedimentosData : []
+      );
+      setAtendimentos(Array.isArray(atendimentosData) ? atendimentosData : []);
+    } catch (error) {
+      console.error(error);
+      setErro("Não foi possível carregar os dados da agenda.");
+    }
   }
 
-  async function criarAtendimento() {
-    const response = await fetch(`${API_URL}/atendimentos`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        clienteId,
-        profissionalId,
-        data,
-        procedimentoIds,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      alert(result.message);
-      return;
-    }
-
-    if (result.sugestao) {
-      alert(result.sugestao.message);
-    }
-
+  function limparFormulario() {
+    setAtendimentoEditandoId(null);
     setClienteId("");
     setProfissionalId("");
     setData("");
     setProcedimentoIds([]);
-
-    carregarDados();
+    setObservacoes("");
   }
 
-  async function confirmarAtendimento(id: string) {
-    try {
-      await fetch(`${API_URL}/atendimentos/${id}/confirmar`, {
-        method: "PATCH",
-      });
+  function formatarDataParaInput(dataISO: string) {
+    const dataObj = new Date(dataISO);
+    const offset = dataObj.getTimezoneOffset();
+    const localDate = new Date(dataObj.getTime() - offset * 60 * 1000);
 
+    return localDate.toISOString().slice(0, 16);
+  }
+
+  function preencherFormularioEdicao(atendimento: Atendimento) {
+    setAtendimentoEditandoId(atendimento.id);
+    setClienteId(atendimento.cliente.id);
+    setProfissionalId(atendimento.profissional.id);
+    setData(formatarDataParaInput(atendimento.data));
+    setProcedimentoIds(
+      atendimento.procedimentos.map((item) => item.procedimento.id)
+    );
+    setObservacoes("");
+    setMensagem("");
+    setErro("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  async function salvarAtendimento() {
+    setMensagem("");
+    setErro("");
+
+    if (!clienteId || !profissionalId || !data) {
+      setErro("Selecione cliente, barbeiro e data.");
+      return;
+    }
+
+    if (!atendimentoEditandoId && procedimentoIds.length === 0) {
+      setErro("Selecione ao menos um serviço.");
+      return;
+    }
+
+    try {
+      const response = await api(
+        atendimentoEditandoId
+          ? `/atendimentos/${atendimentoEditandoId}`
+          : "/atendimentos",
+        {
+          method: atendimentoEditandoId ? "PUT" : "POST",
+          body: JSON.stringify(
+            atendimentoEditandoId
+              ? {
+                  data,
+                  profissionalId,
+                  observacoes,
+                }
+              : {
+                  clienteId,
+                  profissionalId,
+                  data,
+                  procedimentoIds,
+                  observacoes,
+                }
+          ),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setErro(result.message || "Não foi possível salvar o agendamento.");
+        return;
+      }
+
+      if (result.sugestao) {
+        setMensagem(result.sugestao.message);
+      } else {
+        setMensagem(
+          atendimentoEditandoId
+            ? "Agendamento atualizado com sucesso."
+            : "Agendamento criado com sucesso."
+        );
+      }
+
+      limparFormulario();
       carregarDados();
     } catch (error) {
       console.error(error);
+      setErro("Erro inesperado ao salvar agendamento.");
     }
   }
 
-  async function cancelarAtendimento(id: string) {
+  async function confirmarAtendimento(id: string) {
+    setMensagem("");
+    setErro("");
+
     try {
-      const response = await fetch(`${API_URL}/atendimentos/${id}/cancelar`, {
+      const response = await api(`/atendimentos/${id}/confirmar`, {
         method: "PATCH",
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message);
+        setErro(data.message || "Não foi possível confirmar o atendimento.");
         return;
       }
 
+      setMensagem("Agendamento confirmado com sucesso.");
       carregarDados();
     } catch (error) {
       console.error(error);
+      setErro("Erro inesperado ao confirmar atendimento.");
     }
   }
 
   async function realizarAtendimento(id: string) {
+    setMensagem("");
+    setErro("");
+
     try {
-      await fetch(`${API_URL}/atendimentos/${id}/realizar`, {
+      const response = await api(`/atendimentos/${id}/realizar`, {
         method: "PATCH",
       });
 
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErro(data.message || "Não foi possível realizar o atendimento.");
+        return;
+      }
+
+      setMensagem("Atendimento marcado como realizado.");
       carregarDados();
     } catch (error) {
       console.error(error);
+      setErro("Erro inesperado ao realizar atendimento.");
+    }
+  }
+
+  async function cancelarAtendimento(id: string) {
+    const confirmar = window.confirm(
+      "Deseja realmente cancelar este agendamento?"
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
+    setMensagem("");
+    setErro("");
+
+    try {
+      const response = await api(`/atendimentos/${id}/cancelar`, {
+        method: "PATCH",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErro(data.message || "Não foi possível cancelar o atendimento.");
+        return;
+      }
+
+      setMensagem("Agendamento cancelado com sucesso.");
+      carregarDados();
+    } catch (error) {
+      console.error(error);
+      setErro("Erro inesperado ao cancelar atendimento.");
     }
   }
 
   function alternarProcedimento(id: string) {
+    if (atendimentoEditandoId) {
+      return;
+    }
+
     if (procedimentoIds.includes(id)) {
       setProcedimentoIds(procedimentoIds.filter((item) => item !== id));
     } else {
@@ -159,8 +285,6 @@ export default function AtendimentosPage() {
 
   return (
     <div className={styles.container}>
-      <Sidebar />
-
       <main className={styles.content}>
         <section className={styles.hero}>
           <span>AGENDA BARBERFLOW</span>
@@ -176,8 +300,17 @@ export default function AtendimentosPage() {
         <section className={styles.formCard}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2>Novo agendamento</h2>
-              <p>Selecione cliente, barbeiro, data e serviços desejados.</p>
+              <h2>
+                {atendimentoEditandoId
+                  ? "Editar agendamento"
+                  : "Novo agendamento"}
+              </h2>
+
+              <p>
+                {atendimentoEditandoId
+                  ? "Atualize data, barbeiro e observações do agendamento."
+                  : "Selecione cliente, barbeiro, data e serviços desejados."}
+              </p>
             </div>
 
             <strong>
@@ -188,8 +321,15 @@ export default function AtendimentosPage() {
             </strong>
           </div>
 
+          {mensagem && <div className={styles.successMessage}>{mensagem}</div>}
+          {erro && <div className={styles.errorMessage}>{erro}</div>}
+
           <div className={styles.form}>
-            <select value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+            <select
+              value={clienteId}
+              disabled={!!atendimentoEditandoId}
+              onChange={(e) => setClienteId(e.target.value)}
+            >
               <option value="">Selecione o cliente</option>
               {clientes.map((cliente) => (
                 <option key={cliente.id} value={cliente.id}>
@@ -225,6 +365,13 @@ export default function AtendimentosPage() {
                 })}
               </strong>
             </div>
+
+            <textarea
+              placeholder="Observações do atendimento"
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              className={styles.textarea}
+            />
           </div>
 
           <div className={styles.procedimentosBox}>
@@ -235,6 +382,7 @@ export default function AtendimentosPage() {
                 <button
                   key={procedimento.id}
                   type="button"
+                  disabled={!!atendimentoEditandoId}
                   className={
                     procedimentoIds.includes(procedimento.id)
                       ? styles.procedimentoSelecionado
@@ -245,7 +393,7 @@ export default function AtendimentosPage() {
                   <strong>{procedimento.nome}</strong>
 
                   <span>
-                    {procedimento.preco.toLocaleString("pt-BR", {
+                    {Number(procedimento.preco ?? 0).toLocaleString("pt-BR", {
                       style: "currency",
                       currency: "BRL",
                     })}{" "}
@@ -256,9 +404,19 @@ export default function AtendimentosPage() {
             </div>
           </div>
 
-          <button className={styles.submitButton} onClick={criarAtendimento}>
-            Criar agendamento
+          <button className={styles.submitButton} onClick={salvarAtendimento}>
+            {atendimentoEditandoId ? "Salvar alterações" : "Criar agendamento"}
           </button>
+
+          {atendimentoEditandoId && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={limparFormulario}
+            >
+              Cancelar edição
+            </button>
+          )}
         </section>
 
         <section className={styles.tableCard}>
@@ -286,22 +444,36 @@ export default function AtendimentosPage() {
               </thead>
 
               <tbody>
+                {atendimentos.length === 0 && (
+                  <tr>
+                    <td colSpan={7}>Nenhum agendamento cadastrado.</td>
+                  </tr>
+                )}
+
                 {atendimentos.map((atendimento) => (
                   <tr key={atendimento.id}>
                     <td>{new Date(atendimento.data).toLocaleString("pt-BR")}</td>
-                    <td>{atendimento.cliente.nome}</td>
-                    <td>{atendimento.profissional.nome}</td>
+
+                    <td>{atendimento.cliente?.nome ?? "Sem cliente"}</td>
+
+                    <td>{atendimento.profissional?.nome ?? "Sem barbeiro"}</td>
+
                     <td>
                       {atendimento.procedimentos
-                        .map((item) => item.procedimento.nome)
-                        .join(", ")}
+                        ?.map((item) => item.procedimento.nome)
+                        .join(", ") || "-"}
                     </td>
+
                     <td>
-                      {atendimento.valorTotal.toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
+                      {Number(atendimento.valorTotal ?? 0).toLocaleString(
+                        "pt-BR",
+                        {
+                          style: "currency",
+                          currency: "BRL",
+                        }
+                      )}
                     </td>
+
                     <td>
                       <span
                         className={
@@ -310,15 +482,23 @@ export default function AtendimentosPage() {
                             : atendimento.status === "CANCELADO"
                             ? styles.cancelado
                             : atendimento.status === "REALIZADO"
-                            ? styles.realizado
-                            : styles.pendente
+                              ? styles.realizado
+                              : styles.pendente
                         }
                       >
                         {atendimento.status}
                       </span>
                     </td>
+
                     <td>
                       <div className={styles.actions}>
+                        <button
+                          className={styles.editar}
+                          onClick={() => preencherFormularioEdicao(atendimento)}
+                        >
+                          Editar
+                        </button>
+
                         <button
                           className={styles.confirmar}
                           onClick={() => confirmarAtendimento(atendimento.id)}
